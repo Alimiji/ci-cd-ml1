@@ -1,5 +1,12 @@
 fastapi
 uvicorn
-joblib
+streamlit
 scikit-learn
+pandas
+numpy
+joblib
+mlflow
+dvc
+pytest
+
 
