@@ -1,32 +1,50 @@
-# This is a basic workflow to help you get started with Actions
+name: CI - Train & Validate Model
 
-name: CI
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+  workflow_dispatch:  # possibilité de lancer un entraînement manuel
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  train-ml:
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      # 1) Checkout
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      # 2) Python
+      - name: Installer Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      # 3) Install requirements
+      - name: Installer les dépendances
         run: |
-          echo Hello, world!
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install dvc mlflow
+
+      # 4) Pull DVC data (dataset versionné)
+      - name: Télécharger les données DVC
+        run: dvc pull
+
+      # 5) Entraîner le modèle
+      - name: Entraîner le modèle
+        run: |
+          dvc repro  # ou "python train.py"
+
+      # 6) Stocker le modèle entraîné comme artifact GitHub
+      - name: Sauvegarder le modèle entraîné
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-model
+          path: models/  # adapte au dossier de ton modèle
+
+      # 7) Tests unitaires
+      - name: Lancer les tests
+        run: pytest -q
